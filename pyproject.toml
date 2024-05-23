@@ -1,0 +1,27 @@
+[tool.poetry]
+name = "openverse-test-framework"
+version = "0.1.0"
+description = "An example test framework"
+authors = ["Doug Keester <dkeester@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.12"
+pytest = "^8.2.1"
+pytest-bdd = "^7.1.2"
+requests = "^2.32.2"
+
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-rA -q"
+testpaths = [
+    "tests",
+    "integration",
+]
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
