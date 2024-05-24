@@ -12,49 +12,9 @@ from .utils.users import UserNames
 
 
 LOGGER = logging.getLogger(__name__)
+# The scenarios() call is necessary for Pytest to correctly execute our
+# Pytest-BDD test cases.
 scenarios('authentication.feature')
-
-
-# Create an instance of the APIInfo class. This should be cached through the
-# entire test run.
-@pytest.fixture
-def api_info():
-    return APIInfo("")
-
-
-@pytest.fixture
-def reg_request_body(api_info):
-    # The requests library wants a JSON serializable Python object when using
-    # the 'json=' parameter in a request, not an actual JSON document.
-    body: dict = {}
-    body['name'] = api_info.user_name
-    body['description'] = "a test user for Doug's automation"
-    body['email'] = "dkeester@gmail.com"
-
-    return body
-
-
-@pytest.fixture
-def reg_request_headers():
-    return {'Content-Type': 'application/json', 'Accept': 'application/json'}
-
-
-@pytest.fixture
-def token_request_body(import_config):
-    body: dict = {}
-    body['client_id'] = \
-        import_config['authentication_credentials']['client_id']
-    body['client_secret'] = \
-        import_config['authentication_credentials']['client_secret']
-    body['grant_type'] = \
-        import_config['authentication_credentials']['grant_type']
-
-    return body
-
-
-@pytest.fixture
-def token_request_headers():
-    return {'Content-Type': 'application/x-www-form-urlencoded'}
 
 
 @scenario('authentication.feature', 'API Returns Created Response')
@@ -72,16 +32,18 @@ def token_request_headers():
 @scenario('authentication.feature',
           'API Returns Unauthorized When Token Data Incomplete')
 def noop_test():
+    # For now this is a NOOP. Later we may need this for specifying additional
+    # logic at the start of a Scenario.
     pass
 
 
-@given("I'm a new API user")
+@given('I am a new API user')
 def new_user(api_info):
     api_info.user_name = UserNames.generate_username()
     pass
 
 
-@given("I'm a registered API user")
+@given('I am a registered API user')
 def registered_user(api_info, import_config):
     api_info.user_name = import_config['authentication_credentials']['name']
     pass
@@ -182,7 +144,7 @@ def send_token_request(api_info, import_config, token_request_body,
 
 @when('I request an auth token with data missing')
 def send_bad_token_request(api_info, import_config, token_request_body,
-                       token_request_headers):
+                           token_request_headers):
     api_info.url = import_config['authentication_tests']['token_url']
     token_request_body['client_id'] = ""
     token_request_body['client_secret'] = ""
@@ -233,13 +195,13 @@ def verify_auth_token(api_info):
     api_info.auth_token = token_data['access_token']
 
 
-@then("I don't receive a token and get an error response")
+@then('I do not receive a token and get an error response')
 def verify_no_token_and_error(api_info):
     assert api_info.response.status_code == HTTPStatus.BAD_REQUEST.value
     assert api_info.response.text == '{"error":"unsupported_grant_type"}'
 
 
-@then("I don't receive a token and get an unauthorized response")
+@then('I do not receive a token and get an unauthorized response')
 def verify_no_token_and_unauthorized(api_info):
     assert api_info.response.status_code == HTTPStatus.UNAUTHORIZED.value
     assert api_info.response.text == '{"error":"invalid_client"}'
