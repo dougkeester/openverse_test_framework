@@ -12,6 +12,7 @@ python = "^3.12"
 pytest = "^8.2.1"
 pytest-bdd = "^7.1.2"
 requests = "^2.32.2"
+pyyaml = "^6.0.1"
 
 
 [tool.pytest.ini_options]
@@ -21,6 +22,11 @@ testpaths = [
     "tests",
     "integration",
 ]
+bdd_features_base_dir = "tests/features/"
+log_cli = true
+log_cli_level = "WARNING"
+log_file = "pytest.log"
+log_file_level = "DEBUG"
 
 [build-system]
 requires = ["poetry-core"]
