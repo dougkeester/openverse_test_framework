@@ -1,28 +1,26 @@
 # This class keeps track of information about the API in the local system
 import requests
 
-from http import HTTPStatus
 from urllib.parse import urlsplit, SplitResult
 
 
 class APIInfo(object):
-    _expected_return: HTTPStatus = None
+    _auth_token: str = None
     _parsed_url: SplitResult = None
     _response_object: requests.Response = None
     _user_name: str = None
 
     def __init__(self, endpoint: str = None) -> None:
-        self.expected_return = HTTPStatus.NOT_FOUND
         self.url = endpoint if not None else ""
         self.user_name = "default"
 
     @property
-    def expected_return(self) -> HTTPStatus:
-        return self._expected_return
-
-    @expected_return.setter
-    def expected_return(self, retval: HTTPStatus) -> None:
-        self._expected_return = retval
+    def auth_token(self) -> str:
+        return self._auth_token
+    
+    @auth_token.setter
+    def auth_token(self, token: str) -> None:
+        self._auth_token = token
 
     @property
     def response(self) -> requests.Response:

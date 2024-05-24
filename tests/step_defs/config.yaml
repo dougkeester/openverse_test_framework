@@ -1,3 +1,9 @@
 authentication_tests:
   register_url: https://api.openverse.engineering/v1/auth_tokens/register/
   token_url: https://api.openverse.engineering/v1/auth_tokens/token/
+
+authentication_credentials:
+  name: "Doug's Openverse API Test Framework"
+  client_id: boQqXumqHGILNpimhyMjc1WnIKPGBYBqCXzJ87OX
+  client_secret: Mw9teKTLgQCBIgwzKe7HnRKlbMbToCzQ1XFXUncCGUvDBXxkr2aaJ5StV1FVvMdd43HsyR53o0uvIdGxE70AUiaDiQxsqlJZJi33LvCOn6Fl1hZt5BmgGd4cYuNXcdHG
+  grant_type: client_credentials

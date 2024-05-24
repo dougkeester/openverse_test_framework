@@ -26,13 +26,24 @@ Feature: Authenticating to the Openverse API service
         When I send a registration request with my email missing
         Then I receive a 400 response
 
-    # Skipping this for now. I have not found a case where the registration API
-    # will return a 401. Every negative case that I have tried returns 400.
-    #Scenario: API returns 401
-    #    Given I'm a new API user
-
+    # Disabling for now to avoid false fails due to rate limiting
+    @do_not_run
     Scenario: API Returns Too Many Requests
         Given I'm a new API user
         When I send too many registration requests in a row
         Then I receive a 429 response
+    
+    Scenario: API Returns a Bearer Token To Registered User
+        Given I'm a registered API user
+        When I request an auth token
+        Then I receive a valid auth token
 
+    Scenario: API Returns Bad Request When Token Data Missing
+        Given I'm a registered API user
+        When I request an auth token with data missing
+        Then I don't receive a token and get an error response
+    
+    Scenario: API Returns Unauthorized When Token Data Incomplete
+        Given I'm a registered API user
+        When I request an auth token with incomplete data
+        Then I don't receive a token and get an unauthorized response

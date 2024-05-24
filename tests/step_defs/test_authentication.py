@@ -1,4 +1,5 @@
 # Test steps implementation for authentication.feature
+import json
 import logging
 import pytest
 import requests
@@ -22,7 +23,7 @@ def api_info():
 
 
 @pytest.fixture
-def request_body(api_info):
+def reg_request_body(api_info):
     # The requests library wants a JSON serializable Python object when using
     # the 'json=' parameter in a request, not an actual JSON document.
     body: dict = {}
@@ -34,9 +35,26 @@ def request_body(api_info):
 
 
 @pytest.fixture
-def request_headers():
+def reg_request_headers():
     return {'Content-Type': 'application/json', 'Accept': 'application/json'}
 
+
+@pytest.fixture
+def token_request_body(import_config):
+    body: dict = {}
+    body['client_id'] = \
+        import_config['authentication_credentials']['client_id']
+    body['client_secret'] = \
+        import_config['authentication_credentials']['client_secret']
+    body['grant_type'] = \
+        import_config['authentication_credentials']['grant_type']
+
+    return body
+
+
+@pytest.fixture
+def token_request_headers():
+    return {'Content-Type': 'application/x-www-form-urlencoded'}
 
 
 @scenario('authentication.feature', 'API Returns Created Response')
@@ -47,6 +65,12 @@ def request_headers():
 @scenario('authentication.feature',
           'API Returns Bad Request Response When Email Missing')
 @scenario('authentication.feature', 'API Returns Too Many Requests')
+@scenario('authentication.feature',
+          'API Returns a Bearer Token To Registered User')
+@scenario('authentication.feature',
+          'API Returns Bad Request When Token Data Missing')
+@scenario('authentication.feature',
+          'API Returns Unauthorized When Token Data Incomplete')
 def noop_test():
     pass
 
@@ -57,12 +81,19 @@ def new_user(api_info):
     pass
 
 
-@when("I send a correctly formatted registration request")
-def correct_request(api_info, import_config, request_body, request_headers):
+@given("I'm a registered API user")
+def registered_user(api_info, import_config):
+    api_info.user_name = import_config['authentication_credentials']['name']
+    pass
+
+
+@when('I send a correctly formatted registration request')
+def correct_request(api_info, import_config, reg_request_body,
+                    reg_request_headers):
     api_info.url = import_config['authentication_tests']['register_url']
 
-    api_info.response = requests.post(api_info.url, json=request_body,
-                                      headers=request_headers)
+    api_info.response = requests.post(api_info.url, json=reg_request_body,
+                                      headers=reg_request_headers)
     # save the secret information in case we want to use it later.
     LOGGER.critical("response: " + api_info.response.text)
     # make sure we didn't get a 500 error.
@@ -71,13 +102,14 @@ def correct_request(api_info, import_config, request_body, request_headers):
 
 
 @when('I send a registration request with my name missing')
-def no_name_request(api_info, import_config, request_body, request_headers):
+def no_name_request(api_info, import_config, reg_request_body,
+                    reg_request_headers):
     api_info.url = import_config['authentication_tests']['register_url']
 
-    request_body['name'] = ""
+    reg_request_body['name'] = ""
 
-    api_info.response = requests.post(api_info.url, json=request_body,
-                                      headers=request_headers)
+    api_info.response = requests.post(api_info.url, json=reg_request_body,
+                                      headers=reg_request_headers)
     # make sure we didn't get a 500 error.
     assert api_info.response.status_code != \
         HTTPStatus.INTERNAL_SERVER_ERROR.value
@@ -86,14 +118,14 @@ def no_name_request(api_info, import_config, request_body, request_headers):
 
 
 @when('I send a registration request with the description missing')
-def no_description_request(api_info, import_config, request_body,
-                           request_headers):
+def no_description_request(api_info, import_config, reg_request_body,
+                           reg_request_headers):
     api_info.url = import_config['authentication_tests']['register_url']
 
-    request_body['description'] = ""
+    reg_request_body['description'] = ""
 
-    api_info.response = requests.post(api_info.url, json=request_body,
-                                      headers=request_headers)
+    api_info.response = requests.post(api_info.url, json=reg_request_body,
+                                      headers=reg_request_headers)
     # make sure we didn't get a 500 error.
     assert api_info.response.status_code != \
         HTTPStatus.INTERNAL_SERVER_ERROR.value
@@ -102,13 +134,14 @@ def no_description_request(api_info, import_config, request_body,
 
 
 @when('I send a registration request with my email missing')
-def no_email_request(api_info, import_config, request_body, request_headers):
+def no_email_request(api_info, import_config, reg_request_body,
+                     reg_request_headers):
     api_info.url = import_config['authentication_tests']['register_url']
 
-    request_body['email'] = ""
+    reg_request_body['email'] = ""
 
-    api_info.response = requests.post(api_info.url, json=request_body,
-                                      headers=request_headers)
+    api_info.response = requests.post(api_info.url, json=reg_request_body,
+                                      headers=reg_request_headers)
     # make sure we didn't get a 500 error.
     assert api_info.response.status_code != \
         HTTPStatus.INTERNAL_SERVER_ERROR.value
@@ -117,21 +150,60 @@ def no_email_request(api_info, import_config, request_body, request_headers):
 
 
 @when('I send too many registration requests in a row')
-def repeated_requests_response(api_info, import_config, request_body,
-                               request_headers):
+def repeated_requests_response(api_info, import_config, reg_request_body,
+                               reg_request_headers):
     api_info.url = import_config['authentication_tests']['register_url']
 
-    request_body['name'] = ""
+    reg_request_body['name'] = ""
 
     for i in range(0, 51):
-        api_info.response = requests.post(api_info.url, json=request_body,
-                                          headers=request_headers)
+        api_info.response = requests.post(api_info.url, json=reg_request_body,
+                                          headers=reg_request_headers)
         # make sure we didn't get a 500 error.
         assert api_info.response.status_code != \
             HTTPStatus.INTERNAL_SERVER_ERROR.value
 
         if api_info.response.status_code == HTTPStatus.TOO_MANY_REQUESTS.value:
             break
+
+
+@when('I request an auth token')
+def send_token_request(api_info, import_config, token_request_body,
+                       token_request_headers):
+    api_info.url = import_config['authentication_tests']['token_url']
+    api_info.response = requests.post(api_info.url, data=token_request_body,
+                                      headers=token_request_headers)
+    # save the secret information in case we want to use it later.
+    LOGGER.critical("response: " + api_info.response.text)
+    # make sure we didn't get a 500 error.
+    assert api_info.response.status_code != \
+        HTTPStatus.INTERNAL_SERVER_ERROR.value
+
+
+@when('I request an auth token with data missing')
+def send_bad_token_request(api_info, import_config, token_request_body,
+                       token_request_headers):
+    api_info.url = import_config['authentication_tests']['token_url']
+    token_request_body['client_id'] = ""
+    token_request_body['client_secret'] = ""
+    token_request_body['grant_type'] = ""
+    api_info.response = requests.post(api_info.url, data=token_request_body,
+                                      headers=token_request_headers)
+    # make sure we didn't get a 500 error.
+    assert api_info.response.status_code != \
+        HTTPStatus.INTERNAL_SERVER_ERROR.value
+
+
+@when('I request an auth token with incomplete data')
+def send_incomplete_token_request(api_info, import_config, token_request_body,
+                                  token_request_headers):
+    api_info.url = import_config['authentication_tests']['token_url']
+    token_request_body['client_id'] = ""
+    api_info.response = requests.post(api_info.url, data=token_request_body,
+                                      headers=token_request_headers)
+    # make sure we didn't get a 500 error.
+    assert api_info.response.status_code != \
+        HTTPStatus.INTERNAL_SERVER_ERROR.value
 
 
 @then('I receive a 201 response')
@@ -147,3 +219,27 @@ def verify_400_response(api_info):
 @then('I receive a 429 response')
 def verify_429_response(api_info):
     assert api_info.response.status_code == HTTPStatus.TOO_MANY_REQUESTS.value
+
+
+@then('I receive a valid auth token')
+def verify_auth_token(api_info):
+    assert api_info.response.status_code == HTTPStatus.OK.value
+    token_data: dict = json.loads(api_info.response.text)
+    assert len(token_data['access_token']) != 0
+    assert token_data['expires_in'] == 43200
+    assert token_data['token_type'] == 'Bearer'
+    assert token_data['scope'] == 'read write'
+
+    api_info.auth_token = token_data['access_token']
+
+
+@then("I don't receive a token and get an error response")
+def verify_no_token_and_error(api_info):
+    assert api_info.response.status_code == HTTPStatus.BAD_REQUEST.value
+    assert api_info.response.text == '{"error":"unsupported_grant_type"}'
+
+
+@then("I don't receive a token and get an unauthorized response")
+def verify_no_token_and_unauthorized(api_info):
+    assert api_info.response.status_code == HTTPStatus.UNAUTHORIZED.value
+    assert api_info.response.text == '{"error":"invalid_client"}'
