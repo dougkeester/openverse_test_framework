@@ -40,6 +40,12 @@ This automation framework represents the foundations of a test harness that I be
 
     When working with REST APIs in Python this library is the standard choice. It is a mature library that is well supported within the Python community. It was the obvious choice for this project.
 
+7. Postman
+
+    In the 'docs' directory of the project is a YAML file that was downloaded from the Openverse API site. I used this file to create the Postman collection file that is in the same directory.
+
+    Postman is my preferred tool for manual API testing. It is also a valuable tool for automation test development as it allows the automation developer to work with actual data on a live system. Using this tool during development made the process less error prone. 
+
 ## Framework Setup and Use
 
 Using this framework should be as simple as:
